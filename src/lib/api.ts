@@ -3,6 +3,10 @@ import { Message } from '../components/ChatBubble';
 export async function sendChatMessage(messages: Message[]) {
   try {
     const apiKey = import.meta.env.VITE_OPENAI_API_KEY;
+    if (!apiKey) {
+      throw new Error('OpenAI API key is not configured');
+    }
+    
     const apiUrl = 'https://api.openai.com/v1/chat/completions';
     
     // System prompt
@@ -72,25 +76,19 @@ export async function sendChatMessage(messages: Message[]) {
 
 async function fetchNewsForPrompt() {
   try {
-    // Use a proxy endpoint to avoid CORS issues
-    const proxyUrl = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/news`;
-    const params = new URLSearchParams({
-      q: 'pase a la fama OR PALF',
-      language: 'es',
-      sortBy: 'publishedAt',
-      pageSize: '1'
-    });
+    const newsApiKey = import.meta.env.VITE_NEWSAPI_KEY;
+    if (!newsApiKey) {
+      throw new Error('News API key is not configured');
+    }
+
+    const url = `https://newsapi.org/v2/everything?` +
+                `q=${encodeURIComponent('pase a la fama OR PALF')}&` +
+                `language=es&sortBy=publishedAt&pageSize=1&` +
+                `apiKey=${newsApiKey}`;
     
-    const res = await fetch(`${proxyUrl}?${params}`, {
-      headers: {
-        'Authorization': `Bearer ${import.meta.env.VITE_SUPABASE_ANON_KEY}`
-      }
-    });
+    const res = await fetch(url);
     
     if (!res.ok) {
-      if (res.status === 401) {
-        throw new Error('API key inválida o faltante para News API');
-      }
       throw new Error(`Error al obtener noticias: ${res.status} ${res.statusText}`);
     }
     
@@ -109,6 +107,6 @@ async function fetchNewsForPrompt() {
     };
   } catch (error) {
     console.error('Error fetching news:', error);
-    throw error; // Propagate error to be handled by caller
+    throw error;
   }
 }
